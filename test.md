@@ -1,4 +1,4 @@
-# Title
+# Title of the document
 
 ## Subtitle
 
