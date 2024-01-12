@@ -22,3 +22,4 @@ jobs:
           fetch-depth: 0
 
       - uses: cirrus-actions/rebase@1.8
+        continue-on-error: true
