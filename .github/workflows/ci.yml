@@ -14,10 +14,13 @@ env:
   GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
   GH_BRANCH: ${{ github.event.pull_request.head.ref }}
   GH_BRANCH_SHA: ${{ github.event.pull_request.head.sha }}
+  GH_BOT_NAME: github-actions
+  GH_BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
 jobs:
   rebase:
     runs-on: ubuntu-latest
+    if: ! contains(github.actor, 'github-actions')
     steps:
       - uses: actions/checkout@v2
         with:
@@ -26,8 +29,8 @@ jobs:
           ref: ${{ env.GH_BRANCH }}
 
       - run: |
-          git config user.name github-actions
-          git config user.email github-actions[bot]@users.noreply.github.com
+          git config user.name ${{ env.GH_BOT_NAME }}
+          git config user.email ${{ env.GH_BOT_EMAIL }}
 
           if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }};
             then
