@@ -51,14 +51,14 @@ jobs:
         name: Check if branch is up-to-date
         run: |
           if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
-            echo "up_to_date=true" >> $GITHUB_OUTPUT
+            exit 0
           else
-            echo "up_to_date=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
         shell: bash
 
       - name: Try to rebase
-        if: steps.branch_status.outputs.up_to_date == 'false'
+        if: success()
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           # Rebase with the `--rebase-merges` flag to preserve merge commits
