@@ -49,27 +49,6 @@ jobs:
           echo ${{github.event.comment.html_url}}
         shell: bash
 
-      - name: Check for merge conflicts
-        run: |
-          git fetch origin ${{ env.GH_BRANCH_BASE }}
-          set +e
-          git rebase origin/${{ env.GH_BRANCH_BASE }}
-          CONFLICTS=$?
-          set -e
-          if [ $CONFLICTS -ne 0 ]; then
-            echo "Merge conflicts detected. Exiting workflow."
-            exit 1
-          fi
-        shell: bash
-
-      - name: Comment on pull request
-        if: failure()
-        uses: thollander/actions-comment-pull-request@v2
-        with:
-          message: |
-            arruma seus conflitos parça
-          pr_number: ${{ github.event.pull_request.number }}
-
       - name: Try to rebase
         if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
         run: |
@@ -94,4 +73,12 @@ jobs:
         with:
           message: |
             OMG ta funcionando
+          pr_number: ${{ github.event.pull_request.number }}
+
+      - name: Comment on pull request
+        if: failure()
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            arruma seus conflitos parça
           pr_number: ${{ github.event.pull_request.number }}
