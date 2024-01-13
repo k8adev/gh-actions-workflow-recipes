@@ -70,4 +70,3 @@ jobs:
           message: |
             OMG ta funcionando
           pr_number: ${{ github.event.pull_request.number }}
-          comment_tag: execution
