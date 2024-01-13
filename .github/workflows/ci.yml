@@ -60,7 +60,7 @@ jobs:
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
 
-          git push origin ${{ env.GH_BRANCH }}
+          git push origin ${{ env.GH_BRANCH }} --force-with-lease
 
           echo "success=true" >> $GITHUB_OUTPUT
 
