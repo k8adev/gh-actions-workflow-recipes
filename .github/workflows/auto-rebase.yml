@@ -20,8 +20,6 @@ env:
   GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
   GH_BRANCH: ${{ github.event.pull_request.head.ref }}
   GH_BRANCH_SHA: ${{ github.event.pull_request.head.sha }}
-  GH_BOT_NAME: github-actions
-  GH_BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
 jobs:
   rebase:
@@ -54,7 +52,7 @@ jobs:
           git fetch origin ${{ env.GH_BRANCH_BASE }}
 
           # TODO: it doesn't seem to work correctly
-          if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
+          if git merge-base --is-ancestor origin/${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
             echo "up_to_date=true" >> $GITHUB_OUTPUT
           else
             echo "up_to_date=false" >> $GITHUB_OUTPUT
