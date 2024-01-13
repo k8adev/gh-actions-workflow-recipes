@@ -34,7 +34,6 @@ jobs:
 
           if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }};
             then
-              echo "This branch is up to date with main";
               exit 1;
           fi
 
