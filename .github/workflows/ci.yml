@@ -24,7 +24,7 @@ env:
 jobs:
   rebase:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions' || (github.event_name == 'pull_request' && contains(github.event.comment.html_url, '/rebase')) }}
+    if: ${{ github.actor != 'github-actions' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase') || github.event_name == 'pull_request') }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -32,7 +32,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.GH_BRANCH }}
 
-      - run: |
+      - id: check_up_to_date
+        run: |
           git config user.name ${{ env.GH_BOT_NAME }}
           git config user.email ${{ env.GH_BOT_EMAIL }}
 
@@ -45,3 +46,19 @@ jobs:
           git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
 
           git push origin ${{ env.GH_BRANCH }} --force-with-lease
+
+  comment:
+    needs: rebase
+    if: success()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v3
+        with:
+          github-token: ${{ env.GITHUB_TOKEN }}
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'EITA QUE FOI REBASEADO'
+            })
