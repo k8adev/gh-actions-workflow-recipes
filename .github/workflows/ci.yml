@@ -21,5 +21,11 @@ jobs:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - uses: cirrus-actions/rebase@1.8
-        continue-on-error: true
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions[bot]@users.noreply.github.com
+
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
+
+          echo "success"
