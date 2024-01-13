@@ -44,6 +44,9 @@ jobs:
           else
             echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
+
+          echo ${{github.event_name}}
+          echo ${{github.event.comment.html_url}}
         shell: bash
 
       - name: Try to rebase
