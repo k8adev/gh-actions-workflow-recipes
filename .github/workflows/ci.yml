@@ -11,6 +11,7 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  GH_PR_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
 
 jobs:
   rebase:
@@ -20,12 +21,13 @@ jobs:
         with:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
       - run: |
           git config user.name github-actions
           git config user.email github-actions[bot]@users.noreply.github.com
 
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
+          git fetch origin ${{ env.GH_PR_BRANCH_BASE }}
+          git pull --rebase origin ${{ env.GH_PR_BRANCH_BASE }}
 
-          echo "success"
+          git push origin ${{ github.head_ref }} --force
