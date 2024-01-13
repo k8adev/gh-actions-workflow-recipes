@@ -32,7 +32,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.GH_BRANCH }}
 
-      - id: check_up_to_date
+      - id: rebase_status
         run: |
           git config user.name ${{ env.GH_BOT_NAME }}
           git config user.email ${{ env.GH_BOT_EMAIL }}
@@ -47,18 +47,16 @@ jobs:
 
           git push origin ${{ env.GH_BRANCH }} --force-with-lease
 
+          echo "::set-output name=success::true"
+
   comment:
     needs: rebase
     if: success()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v3
+      - uses: thollander/actions-comment-pull-request@v2
         with:
-          github-token: ${{ env.GITHUB_TOKEN }}
-          script: |
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'EITA QUE FOI REBASEADO'
-            })
+          message: |
+            TA REBASED 👻
+          pr_number: ${{ github.event.pull_request.number }}
+          mode: delete
