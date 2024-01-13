@@ -50,8 +50,8 @@ jobs:
         id: branch_rebase
         if: steps.branch_status.outputs.up_to_date == 'false'
         run: |
-          git config user.name ${{ github.event.pull_request.user.login }}
-          git config user.email ${{ github.event.pull_request.user.email }}
+          git config user.name $(git log -1 --pretty=format:'%an')
+          git config user.email $(git log -1 --pretty=format:'%ae')
 
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
