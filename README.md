@@ -2,4 +2,4 @@
 
 ## Recipes
 
-- [Automatic Rebase](./auto-rebase.md)
+- [Automatic Rebase](./.github/workflows/auto-rebase.yml)
