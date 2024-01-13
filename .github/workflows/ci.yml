@@ -26,15 +26,11 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions[bot]@users.noreply.github.com
 
-          BASE_SHA=$(git rev-parse ${{ github.event.pull_request.base.ref }}:${{ github.event.pull_request.base.ref }})
-          HEAD_SHA=$(git rev-parse ${{ github.head_ref }}:${{ github.head_ref }})
-
-          if [ "$BASE_SHA" == "$HEAD_SHA" ]; then
-            echo "Branch is not up-to-date with base branch. Please update your branch."
-            exit 0
+          if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
+            then
+              echo "This branch is up to date with main";
+              exit 1;
           fi
-
-          echo "Rebasing from ${{ github.event.pull_request.base.ref }}"
 
           git fetch origin ${{ github.event.pull_request.base.ref }}
           git pull --rebase origin ${{ github.event.pull_request.base.ref }}
