@@ -11,6 +11,9 @@ on:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
+  GH_BRANCH: ${{ github.event.pull_request.head.ref }}
+  GH_BRANCH_SHA: ${{ github.event.pull_request.head.sha }}
 
 jobs:
   rebase:
@@ -20,22 +23,19 @@ jobs:
         with:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
-          ref: ${{ github.head_ref }}
+          ref: ${{ env.GH_BRANCH }}
 
       - run: |
           git config user.name github-actions
           git config user.email github-actions[bot]@users.noreply.github.com
 
-          # if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
-          #   then
-          #     echo "This branch is up to date with main";
-          #     exit 1;
-          # fi
+          if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }};
+            then
+              echo "This branch is up to date with main";
+              exit 1;
+          fi
 
-          # git fetch ${{ github.event.pull_request.base.ref }}
-          # git pull --rebase ${GITHUB_REF##*/}
+          git fetch origin ${{ env.GH_BRANCH_BASE }}
+          git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
 
-          # git push ${{ github.head_ref }} --force-with-lease
-
-          echo ${{ github.ref_name }}
-          echo ${{ github.head_ref }}
+          git push origin ${{ env.GH_BRANCH }} --force-with-lease
