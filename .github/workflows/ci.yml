@@ -55,7 +55,7 @@ jobs:
         run: |
           git config user.name $(git log -1 --pretty=format:'%an')
           git config user.email $(git log -1 --pretty=format:'%ae')
-          git -c rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit' rebase -i
+          git config rebase.instructionFormat='%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit --reset-author --date="%cD"' rebase --root
 
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
