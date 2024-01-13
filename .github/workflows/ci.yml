@@ -8,31 +8,77 @@ on:
       - reopened
     branches:
       - main
+  issue_comment:
+    types:
+      - created
+      - edited
 
 env:
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
+  GH_BRANCH: ${{ github.event.pull_request.head.ref }}
+  GH_BRANCH_SHA: ${{ github.event.pull_request.head.sha }}
+  GH_BOT_NAME: github-actions
+  GH_BOT_EMAIL: github-actions[bot]@users.noreply.github.com
 
 jobs:
   rebase:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase')) }}
+    permissions:
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
         with:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
-          ref: ${{ github.head_ref }}
+          ref: ${{ env.GH_BRANCH }}
 
-      - run: |
-          git config user.name github-actions
-          git config user.email github-actions[bot]@users.noreply.github.com
-
+      - id: branch_status
+        name: Check if branch is up-to-date
+        run: |
           if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
-            then
-              echo "This branch is up to date with main";
-              exit 1;
+          then
+            echo "up_to_date=true" >> $GITHUB_OUTPUT
+          else
+            echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
 
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
+          echo ${{github.event_name}}
+          echo ${{github.event.comment.html_url}}
+        shell: bash
 
-          git push origin ${{ github.head_ref }} --force-with-lease
+      - name: Try to rebase
+        if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
+        run: |
+          # Use the author of the last commit as the committer
+          git config user.name $(git log -1 --pretty=format:'%an')
+          git config user.email $(git log -1 --pretty=format:'%ae')
+
+          # Keep the original author date
+          git config rebase.instructionFormat '%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit --reset-author --date="%cD"'
+
+          git fetch origin ${{ env.GH_BRANCH_BASE }}
+          git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
+
+          # Edit last commit message to include [skip ci] and avoid triggering subsequent workflows
+          git commit --amend -m "$(git log -1 --pretty=%B) [skip ci]"
+
+          git push origin ${{ env.GH_BRANCH }} --force-with-lease
+
+      - name: Comment on pull request
+        if: success()
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            OMG ta funcionando
+          pr_number: ${{ github.event.pull_request.number }}
+
+      - name: Comment on pull request
+        if: failure()
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            arruma seus conflitos parça
+          pr_number: ${{ github.event.pull_request.number }}
