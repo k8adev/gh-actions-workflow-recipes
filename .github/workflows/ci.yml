@@ -20,6 +20,19 @@ jobs:
         with:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
+          ref: ${{ github.head_ref }}
 
-      - uses: cirrus-actions/rebase@1.8
-        continue-on-error: true
+      - run: |
+          git config user.name github-actions
+          git config user.email github-actions[bot]@users.noreply.github.com
+
+          if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
+            then
+              echo "This branch is up to date with main";
+              exit 1;
+          fi
+
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+          git pull --rebase origin ${{ github.event.pull_request.base.ref }}
+
+          git push origin ${{ github.head_ref }} --force-with-lease
