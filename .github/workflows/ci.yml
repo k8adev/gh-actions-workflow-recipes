@@ -24,26 +24,34 @@ env:
 jobs:
   rebase:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase') || github.event_name == 'pull_request') }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase')) }}
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v2
         with:
           token: ${{ env.GITHUB_TOKEN }}
           fetch-depth: 0
           ref: ${{ env.GH_BRANCH }}
 
-      - name: Rebase
-        id: rebase_status
+      - id: branch_status
+        name: Check if branch is up-to-date
         run: |
-          git config user.name ${{ env.GH_BOT_NAME }}
-          git config user.email ${{ env.GH_BOT_EMAIL }}
-
-          if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }};
-            then
-              exit 1;
+          if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
+          then
+            echo "::set-output name=up_to_date::true"
+          else
+            echo "::set-output name=up_to_date::false"
           fi
+        shell: bash
+
+      - name: Try to rebase
+        id: branch_rebase
+        if: steps.branch_status.outputs.up_to_date == 'false'
+        run: |
+          git config user.name ${{ github.event.pull_request.user.login }}
+          git config user.email ${{ github.event.pull_request.user.email }}
 
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           git pull --rebase origin ${{ env.GH_BRANCH_BASE }}
@@ -52,11 +60,12 @@ jobs:
 
           echo "::set-output name=success::true"
 
-      - name: Comment Pull Request
-        if: ${{ steps.rebase_status.outputs.success == 'true' }}
+      - name: Comment on pull request
+        if: ${{ steps.branch_status.outputs.up_to_date == 'true' || steps.branch_rebase.outputs.success == 'true' }}
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            TA REBASED 👻
+            OMG ta funcionando
           pr_number: ${{ github.event.pull_request.number }}
+          comment_tag: to_delete
           mode: delete
