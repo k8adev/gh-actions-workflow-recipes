@@ -1,4 +1,4 @@
-name: Workflow Name
+name: Automatic rebase strategy
 
 on:
   pull_request:
@@ -23,7 +23,9 @@ env:
 
 jobs:
   rebase:
+    name: Rebase
     runs-on: ubuntu-latest
+    # TODO: rebase from `issue_comment` event doesn't work
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase')) }}
     permissions:
       pull-requests: write
@@ -48,21 +50,18 @@ jobs:
       - id: branch_status
         name: Check if branch is up-to-date
         run: |
-          if git merge-base --is-ancestor ${{ github.event.pull_request.base.ref }} ${{ github.event.pull_request.head.sha }};
-          then
+          if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
             echo "up_to_date=true" >> $GITHUB_OUTPUT
           else
             echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
-
-          echo ${{github.event_name}}
-          echo ${{github.event.comment.html_url}}
         shell: bash
 
       - name: Try to rebase
         if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
+          # Rebase with the `--rebase-merges` flag to preserve merge commits
           git rebase --rebase-merges origin/${{ env.GH_BRANCH_BASE }}
 
           # Edit last commit message to include [skip ci] and avoid triggering subsequent workflows
@@ -70,18 +69,18 @@ jobs:
 
           git push origin ${{ env.GH_BRANCH }} --force-with-lease
 
-      - name: Comment on pull request
+      - name: Comment on pull request if rebase was successful
         if: success()
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            OMG ta funcionando
+            Successfully rebased automatically :tada:
           pr_number: ${{ github.event.pull_request.number }}
 
-      - name: Comment on pull request
+      - name: Comment on pull request if rebase failed
         if: failure()
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            arruma seus conflitos parça u_u
+            :warning: Cannot rebase automatically. Please rebase manually and push again.
           pr_number: ${{ github.event.pull_request.number }}
