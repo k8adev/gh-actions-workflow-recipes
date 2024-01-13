@@ -16,6 +16,7 @@ on:
       - edited
 
 env:
+  # Change `secrets.GH_TOKEN` to your own secret name if you want to use a different one
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
   GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
   GH_BRANCH: ${{ github.event.pull_request.head.ref }}
@@ -25,7 +26,7 @@ jobs:
   rebase:
     name: Rebase
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/rebase')) }}
+    if: github.event_name == 'pull_request' || contains(github.event.comment.body, '/rebase')
     permissions:
       pull-requests: write
     steps:
@@ -51,7 +52,6 @@ jobs:
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
 
-          # TODO: it doesn't seem to work correctly
           if git merge-base --is-ancestor origin/${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
             echo "up_to_date=true" >> $GITHUB_OUTPUT
           else
@@ -60,7 +60,7 @@ jobs:
         shell: bash
 
       - name: Try to rebase
-        if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
+        if: steps.branch_status.outputs.up_to_date == 'false'
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           # Rebase with the `--rebase-merges` flag to preserve merge commits
@@ -72,11 +72,11 @@ jobs:
           git push origin ${{ env.GH_BRANCH }} --force-with-lease
 
       - name: Comment on pull request if rebase was successful
-        if: success()
+        if: success() && steps.branch_status.outputs.up_to_date == 'false'
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            Successfully rebased automatically :tada:
+            Branch is up-to-date :tada:
           pr_number: ${{ github.event.pull_request.number }}
 
       - name: Comment on pull request if rebase failed
@@ -84,5 +84,9 @@ jobs:
         uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
-            :warning: Cannot rebase automatically. Please rebase manually and push again.
+            :stop_sign::raised_hand: Cannot rebase automatically.
+
+            Please rebase manually and push again.
+
+            If you don't familiar with git rebase, please check out [this guide](https://docs.github.com/en/get-started/using-git/resolving-merge-conflicts-after-a-git-rebase).
           pr_number: ${{ github.event.pull_request.number }}
