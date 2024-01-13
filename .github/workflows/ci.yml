@@ -25,6 +25,8 @@ jobs:
   rebase:
     runs-on: ubuntu-latest
     if: ${{ github.actor != 'github-actions' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase') || github.event_name == 'pull_request') }}
+    permissions:
+      pull-requests: write
     steps:
       - uses: actions/checkout@v2
         with:
@@ -32,7 +34,8 @@ jobs:
           fetch-depth: 0
           ref: ${{ env.GH_BRANCH }}
 
-      - id: rebase_status
+      - name: Rebase
+        id: rebase_status
         run: |
           git config user.name ${{ env.GH_BOT_NAME }}
           git config user.email ${{ env.GH_BOT_EMAIL }}
@@ -49,14 +52,9 @@ jobs:
 
           echo "::set-output name=success::true"
 
-  comment:
-    needs: rebase
-    if: success()
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: thollander/actions-comment-pull-request@v2
+      - name: Comment Pull Request
+        if: ${{ steps.rebase_status.outputs.success == 'true' }}
+        uses: thollander/actions-comment-pull-request@v2
         with:
           message: |
             TA REBASED 👻
