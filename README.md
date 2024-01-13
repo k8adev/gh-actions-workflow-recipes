@@ -1,1 +1,1 @@
-# Workflow template
+# Workflow Templates
