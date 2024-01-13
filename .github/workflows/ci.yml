@@ -20,7 +20,7 @@ env:
 jobs:
   rebase:
     runs-on: ubuntu-latest
-    if: ! contains(github.actor, 'github-actions')
+    if: ${{ github.actor != 'github-actions' }}
     steps:
       - uses: actions/checkout@v2
         with:
