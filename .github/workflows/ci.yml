@@ -58,7 +58,7 @@ jobs:
         shell: bash
 
       - name: Try to rebase
-        if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
+        if: steps.branch_status.outputs.up_to_date == 'false'
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           # Rebase with the `--rebase-merges` flag to preserve merge commits
