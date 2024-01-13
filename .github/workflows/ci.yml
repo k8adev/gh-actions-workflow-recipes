@@ -53,10 +53,11 @@ jobs:
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           set +e
-          git merge origin/${{ env.GH_BRANCH_BASE }}
+          git rebase origin/${{ env.GH_BRANCH_BASE }}
           CONFLICTS=$?
           set -e
           if [ $CONFLICTS -ne 0 ]; then
+            echo "Merge conflicts detected. Exiting workflow."
             exit 1
           fi
         shell: bash
