@@ -1,3 +1,5 @@
+# This workflow automatically rebases pull requests targeting the base branch
+# and when a comment containing '/rebase' is created or edited.
 name: Automatic rebase strategy
 
 on:
@@ -25,8 +27,7 @@ jobs:
   rebase:
     name: Rebase
     runs-on: ubuntu-latest
-    # TODO: rebase from `issue_comment` event doesn't work
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.html_url, '/rebase')) }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/rebase')) }}
     permissions:
       pull-requests: write
     steps:
@@ -50,15 +51,17 @@ jobs:
       - id: branch_status
         name: Check if branch is up-to-date
         run: |
+          git fetch origin ${{ env.GH_BRANCH_BASE }}
+
           if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
-            exit 0
+            echo "up_to_date=true" >> $GITHUB_OUTPUT
           else
-            exit 1
+            echo "up_to_date=false" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
       - name: Try to rebase
-        if: success()
+        if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
           # Rebase with the `--rebase-merges` flag to preserve merge commits
