@@ -1,0 +1,92 @@
+# This workflow automatically rebases pull requests targeting the base branch
+# and when a comment containing '/rebase' is created or edited.
+name: Automatic rebase strategy
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+  issue_comment:
+    types:
+      - created
+      - edited
+
+env:
+  # Change `secrets.GH_TOKEN` to your own secret name if you want to use a different one
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+  GH_BRANCH_BASE: ${{ github.event.pull_request.base.ref }}
+  GH_BRANCH: ${{ github.event.pull_request.head.ref }}
+  GH_BRANCH_SHA: ${{ github.event.pull_request.head.sha }}
+
+jobs:
+  rebase:
+    name: Rebase
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || contains(github.event.comment.body, '/rebase')
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          token: ${{ env.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: ${{ env.GH_BRANCH }}
+
+      - name: Configure git
+        run: |
+          # Use the author of the last commit as the committer
+          git config user.name $(git log -1 --pretty=format:'%an')
+          git config user.email $(git log -1 --pretty=format:'%ae')
+
+          # Keep the original author date
+          git config rebase.instructionFormat '%s%nexec GIT_COMMITTER_DATE="%cD" git commit --amend --no-edit --reset-author --date="%cD"'
+        shell: bash
+
+      - id: branch_status
+        name: Check if branch is up-to-date
+        run: |
+          git fetch origin ${{ env.GH_BRANCH_BASE }}
+
+          if git merge-base --is-ancestor origin/${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
+            echo "up_to_date=true" >> $GITHUB_OUTPUT
+          else
+            echo "up_to_date=false" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+
+      - name: Try to rebase
+        if: steps.branch_status.outputs.up_to_date == 'false'
+        run: |
+          git fetch origin ${{ env.GH_BRANCH_BASE }}
+          # Rebase with the `--rebase-merges` flag to preserve merge commits
+          git rebase --rebase-merges origin/${{ env.GH_BRANCH_BASE }}
+
+          # Edit last commit message to include [skip ci] and avoid triggering subsequent workflows
+          git commit --amend -m "$(git log -1 --pretty=%B) [skip ci]"
+
+          git push origin ${{ env.GH_BRANCH }} --force-with-lease
+
+      - name: Comment on pull request if rebase was successful
+        if: success() && steps.branch_status.outputs.up_to_date == 'false'
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            Branch is up-to-date :tada:
+          pr_number: ${{ github.event.pull_request.number }}
+
+      - name: Comment on pull request if rebase failed
+        if: failure()
+        uses: thollander/actions-comment-pull-request@v2
+        with:
+          message: |
+            :stop_sign::raised_hand: Cannot rebase automatically.
+
+            Please rebase manually and push again.
+
+            If you don't familiar with git rebase, please check out [this guide](https://docs.github.com/en/get-started/using-git/resolving-merge-conflicts-after-a-git-rebase).
+          pr_number: ${{ github.event.pull_request.number }}

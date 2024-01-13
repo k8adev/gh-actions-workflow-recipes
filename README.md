@@ -2,4 +2,4 @@
 
 ## Recipes
 
-- [Automatic Rebase](./autorebase.md)
+- [Automatic Rebase](./auto-rebase.md)
