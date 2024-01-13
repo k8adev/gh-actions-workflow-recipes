@@ -53,6 +53,7 @@ jobs:
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
 
+          # TODO: it doesn't seem to work correctly
           if git merge-base --is-ancestor ${{ env.GH_BRANCH_BASE }} ${{ env.GH_BRANCH_SHA }}; then
             echo "up_to_date=true" >> $GITHUB_OUTPUT
           else
