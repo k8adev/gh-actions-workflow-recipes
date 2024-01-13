@@ -63,7 +63,7 @@ jobs:
         if: ${{ steps.branch_status.outputs.up_to_date == 'false' }}
         run: |
           git fetch origin ${{ env.GH_BRANCH_BASE }}
-          git rebase --rebase-merges origin ${{ env.GH_BRANCH_BASE }}
+          git rebase --rebase-merges origin/${{ env.GH_BRANCH_BASE }}
 
           # Edit last commit message to include [skip ci] and avoid triggering subsequent workflows
           git commit --amend -m "$(git log -1 --pretty=%B) [skip ci]"
