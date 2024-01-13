@@ -8,6 +8,10 @@ on:
       - reopened
     branches:
       - main
+  issue_comment:
+    types:
+      - created
+      - edited
 
 env:
   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -20,7 +24,7 @@ env:
 jobs:
   rebase:
     runs-on: ubuntu-latest
-    if: ${{ github.actor != 'github-actions' }}
+    if: ${{ github.actor != 'github-actions' || (github.event_name == 'pull_request' && contains(github.event.comment.html_url, '/rebase')) }}
     steps:
       - uses: actions/checkout@v2
         with:
